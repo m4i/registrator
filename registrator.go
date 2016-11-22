@@ -172,6 +172,14 @@ func main() {
 			go b.Add(msg.ID)
 		case "die":
 			go b.RemoveOnExit(msg.ID)
+		case "kill":
+			if signal, ok := msg.Actor.Attributes["signal"]; ok {
+				if signal == "2" || // INT
+					signal == "3" || // QUIT
+					signal == "15" { // TERM
+					go b.RemoveOnExit(msg.ID)
+				}
+			}
 		}
 	}
 
