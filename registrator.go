@@ -28,6 +28,7 @@ var deregister = flag.String("deregister", "always", "Deregister exited services
 var retryAttempts = flag.Int("retry-attempts", 0, "Max retry attempts to establish a connection with the backend. Use -1 for infinite retries")
 var retryInterval = flag.Int("retry-interval", 2000, "Interval (in millisecond) between retry-attempts.")
 var cleanup = flag.Bool("cleanup", false, "Remove dangling services")
+var delayOnKill = flag.Int("delay-on-kill", 0, "Delay time (in second) on kill event")
 
 func getopt(name, def string) string {
 	if env := os.Getenv(name); env != "" {
@@ -81,6 +82,10 @@ func main() {
 
 	if *retryInterval <= 0 {
 		assert(errors.New("-retry-interval must be greater than 0"))
+	}
+
+	if *delayOnKill < 0 {
+		assert(errors.New("-delay-on-kill must be greater than or equal to 0"))
 	}
 
 	dockerHost := os.Getenv("DOCKER_HOST")
@@ -177,7 +182,10 @@ func main() {
 				if signal == "2" || // INT
 					signal == "3" || // QUIT
 					signal == "15" { // TERM
-					go b.RemoveOnExit(msg.ID)
+					go func(id string) {
+						time.Sleep(time.Duration(*delayOnKill) * time.Second)
+						b.RemoveOnExit(id)
+					}(msg.ID)
 				}
 			}
 		}
